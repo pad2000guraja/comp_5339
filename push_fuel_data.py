@@ -111,32 +111,6 @@ def publish_mqtt(client, topic, loaddata, batch_size=200, delay=0.0):
         print("Unsupported data type for MQTT publish.")
 
 
-# def publish_mqtt(client, topic, loaddata, broker="broker.hivemq.com", port=1883):
-    
-#     client.connect(broker, port, 60)
-#     client.loop_start()
-#     # print(type(loaddata))
-    
-#     if isinstance(loaddata, list):
-#         start = time.time()
-#         info = client.publish(topic, json.dumps(loaddata), qos=1)
-#         info.wait_for_publish()
-#         end = time.time()
-#         print(f"publish {topic} list successful")
-#         print(f"Publish with confirmation took {end - start:.4f} seconds")
-
-#     elif isinstance(loaddata, pd.DataFrame):
-#         csv_str = loaddata.to_csv(index=False)
-#         start = time.time()
-#         info = client.publish(topic, csv_str, qos=1)
-#         info.wait_for_publish()
-#         end = time.time()
-#         print(f"publish {topic} dataframe successful")
-#         print(f"Publish with confirmation took {end - start:.4f} seconds")
-    #     
-    
-    # client.disconnect()
-
 def clean_data(stations, prices,csv_path="fresh_prices.csv"):
     # print("aaaaa")
     stations = stations.rename(columns={
@@ -159,10 +133,6 @@ def clean_data(stations, prices,csv_path="fresh_prices.csv"):
         latest_price['lastupdated'].astype(str)
     )
     fuel_options = sorted(latest_price['fueltype'].unique().tolist())
-    # print(type(fuel_options))
-    # print(latest.columns)
-    # publish_mqtt("fuel/stations", stations.to_dict(orient="records"))
-    # publish_mqtt("fuel/options", fuel_options)
 
     if os.path.exists(csv_path):
         existing_data = pd.read_csv(csv_path)
@@ -179,16 +149,11 @@ def clean_data(stations, prices,csv_path="fresh_prices.csv"):
     new_rows = latest_price[~latest_price['record_id'].isin(existing_ids)].copy()
     new_rows.drop(columns=['record_id'], inplace=True)
 
-    # if len(new_rows)==0:
-    #     new_rows="no new price "
-
-    # update new_price data to cvs
     if not new_rows.empty:
         new_rows.to_csv(csv_path, mode='a', header=not os.path.exists(csv_path), index=False)
         print(f"✅ update {len(new_rows)} new prices to {csv_path}")
     else:
         print("ℹ️ no update price")
-    # print(type(stations))
 
     if len(existing_data):
         return stations, new_rows, fuel_options, existing_data
@@ -214,12 +179,7 @@ if __name__=="__main__":
         publish_mqtt(client,"fuel/fuel_options", fuel_options)
         publish_mqtt(client,"fuel/price_records", price_records)
         print("All topic data are published")
-        # client.publish("fuel/new_prices", payload, qos=0)
-        # for record in new_prices:
-        #     payload = msgpack.packb(record)  
-        #     # print(len(payload))
-        #     client.publish("fuel/new_prices", payload, qos=0)
-        #     time.sleep(0.1)
+        
         client.loop_stop()
         client.disconnect()
 
